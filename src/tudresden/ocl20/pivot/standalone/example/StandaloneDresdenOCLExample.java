@@ -43,7 +43,7 @@ public class StandaloneDresdenOCLExample {
 
 	public static void main(String[] args) throws Exception {
 
-		String ObjectID = "";
+		String constraintID = "";
 		String ecoreFilePath = "";
 		String constraintName = "";
 		String ObjectName = "";
@@ -62,40 +62,48 @@ public class StandaloneDresdenOCLExample {
 		FileWriter invalidWriter = new FileWriter("invalidOCL.txt");
 		String Line = reader.readLine();
 		boolean First = true;
+		boolean nonEmptyExpression = true;
 		while (Line != null)
 		{
 			int counter = 1;
+			int index = 1;
 			String[] SplitLine = Line.substring(1).split("#");
-//			ObjectID = SplitLine[0];
+			constraintID = SplitLine[0];
 			ecoreFilePath = SplitLine[1];
 			constraintName = SplitLine[2];
 			ObjectName = SplitLine[3];
-			OCL_expression = SplitLine[4];
-
-			File File = new File(ecoreFilePath);
-			IModel model = StandaloneFacade.INSTANCE.loadEcoreModel(File);
-
-			try{
-				List<Constraint> list = parseOclString("-- The id of a plug-in must be defined.\n" +
-								"context " + ObjectName+ " \n" +
-								"inv " + constraintName+ ": \n" +
-								OCL_expression + "\n" +
-								"\n"
-						,model);
-
-				for (Constraint C : list) {
-					System.out.println(C);
-					counter++;
-				}
-				validWriter.write(OCL_expression);
-				validWriter.flush();
+			if( SplitLine.length == 5 ){
+				OCL_expression = SplitLine[4];
+				nonEmptyExpression = true;
 			}
-			catch(SemanticException e){
-				invalidWriter.write(OCL_expression);
-				invalidWriter.flush();
+
+			if(nonEmptyExpression){
+				File File = new File(ecoreFilePath);
+				IModel model = StandaloneFacade.INSTANCE.loadEcoreModel(File);
+
+				try{
+					List<Constraint> list = parseOclString("-- The id of a plug-in must be defined.\n" +
+									"context " + ObjectName+ " \n" +
+									"inv " + constraintName+ ": \n" +
+									OCL_expression + "\n" +
+									"\n"
+							,model);
+
+					for (Constraint C : list) {
+						System.out.println(C);
+						System.out.println("Constrain NO" + constraintID);
+						counter++;
+					}
+					validWriter.write(OCL_expression);
+					validWriter.flush();
+				}
+				catch(SemanticException e){
+					invalidWriter.write(OCL_expression);
+					invalidWriter.flush();
 //				e.printStackTrace();
-		}
-			Line = reader.readLine();
+				}
+				Line = reader.readLine();
+			}
 			}
 
 		validWriter.close();
