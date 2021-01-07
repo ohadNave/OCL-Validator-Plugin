@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.emf.common.util.TreeIterator;
 import org.eclipse.emf.common.util.URI;
@@ -58,29 +59,47 @@ public class StandaloneDresdenOCLExample {
 //		} else {
 //			System.out.println("File already exists.");
 //		}
-		FileWriter validWriter = new FileWriter("validOCL.txt");
-		FileWriter invalidWriter = new FileWriter("invalidOCL.txt");
+		FileWriter validWriter = new FileWriter("validOCL.txt", true);
+		FileWriter invalidWriter = new FileWriter("invalidOCL.txt", true);
 		String Line = reader.readLine();
 		boolean First = true;
 		boolean nonEmptyExpression = true;
+		int counter = 1;
+
 		while (Line != null)
 		{
-			int counter = 1;
+			String[] SplitLine = new String[5];
+			try{
 			int index = 1;
-			String[] SplitLine = Line.substring(1).split("#");
+			SplitLine = Line.substring(1).split("#");
 			constraintID = SplitLine[0];
 			ecoreFilePath = SplitLine[1];
 			constraintName = SplitLine[2];
 			ObjectName = SplitLine[3];
+			OCL_expression = SplitLine[4];
+			}
+			catch (Exception e){
+//				e.getStackTrace();
+			}
+			if(OCL_expression == null || OCL_expression.equals("") || Integer.parseInt(constraintID) == 8372 ||
+					Integer.parseInt(constraintID) == 20157 || Integer.parseInt(constraintID) == 20158 ||
+					Integer.parseInt(constraintID) == 20321 || Integer.parseInt(constraintID) == 20322)
+			{
+				Line = reader.readLine();
+				continue;
+			}
 			if( SplitLine.length == 5 ){
 				OCL_expression = SplitLine[4];
 				nonEmptyExpression = true;
 			}
-
 			if(nonEmptyExpression){
 				File File = new File(ecoreFilePath);
 				IModel model = StandaloneFacade.INSTANCE.loadEcoreModel(File);
+				if(Integer.parseInt(constraintID) == 8300){
+					System.gc();
+					TimeUnit.SECONDS.sleep(5);
 
+				}
 				try{
 					List<Constraint> list = parseOclString("-- The id of a plug-in must be defined.\n" +
 									"context " + ObjectName+ " \n" +
@@ -89,16 +108,16 @@ public class StandaloneDresdenOCLExample {
 									"\n"
 							,model);
 
-					for (Constraint C : list) {
-						System.out.println(C);
-						System.out.println("Constrain NO" + constraintID);
-						counter++;
-					}
-					validWriter.write(OCL_expression);
+//					for (Constraint C : list) {
+//						System.out.println(C);
+//						System.out.println("Constrain NO" + constraintID);
+//						counter++;
+//					}
+					validWriter.write(constraintID +" ,Expression: " + OCL_expression+"\n");
 					validWriter.flush();
 				}
 				catch(SemanticException e){
-					invalidWriter.write(OCL_expression);
+					invalidWriter.write(constraintID +" ,Expression: " + OCL_expression +"\n");
 					invalidWriter.flush();
 //				e.printStackTrace();
 				}
@@ -245,23 +264,28 @@ public class StandaloneDresdenOCLExample {
 		checkForErrors(resource);
 		OclStaticSemantics staticSemantics = OclStaticSemanticsProvider.getStaticSemantics(resource);
 		// I added from here
-		TreeIterator x = resource.getAllContents();
-		while (x.hasNext())
-		{
-			Object NextNode =x.next();
-			Class NodeClass = NextNode.getClass();
-			System.out.println("Class Name - "+NodeClass.getName() +"    :     toString: "+NextNode.toString());
-		}
-		// To here
+//		TreeIterator x = resource.getAllContents();
+//		while (x.hasNext())
+//		{
+//			Object NextNode =x.next();
+//			Class NodeClass = NextNode.getClass();
+//			System.out.println("Class Name - "+NodeClass.getName() +"    :     toString: "+NextNode.toString());
+//		}
+//		// To here
 		List constraints;
 		try {
 			constraints = staticSemantics.cs2EssentialOcl((EObject)resource.getContents().get(0));
+			checkForErrors(resource);
+			return constraints;
 		} catch (OclStaticSemanticsException var5) {
 			throw new SemanticException(var5.getMessage(), var5);
 		}
+		catch (Exception e){
 
-		checkForErrors(resource);
-		return constraints;
+		}
+		return null;
+//		checkForErrors(resource);
+//		return constraints;
 	}
 
 	private static void checkForErrors(OclResource resource) throws ParseException {
